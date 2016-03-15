@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `graceful` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, graceful">
+
+    <title>graceful - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'graceful', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>graceful</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-0' class='srclink' href='../src/graceful/src/lib.rs.html#1-126' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Gracefully shutdown.</p>
+
+<p>(Unix) Async signals are tricky to handle properly. This utility let you
+block the main thread and execute arbitrary (thread-safe) code to shutdown
+the process gracefully.</p>
+
+<h1 id='usage' class='section-header'><a href='#usage'>Usage</a></h1>
+<ol>
+<li>Initialize a <a href="struct.SignalGuard.html">SignalGuard</a> before creating any
+additional threads.</li>
+<li>The <a href="struct.SignalGuard.html">SignalGuard</a> will block necessary signals
+(<code>SIGINT</code>, <code>SIGQUIT</code> and <code>SIGTERM</code> on *nix, <code>Ctrl+C</code> and <code>Ctrl+Break</code> on
+Windows) during initialization.</li>
+<li>Spawn new threads to do the real work.</li>
+<li>Register a handle to properly shutdown the application.</li>
+<li>The main thread will be blocked until a signal is received.</li>
+<li>The handler will run in the main thread.</li>
+<li>On Windows the process will terminate after the handler returns (and
+potentially any libc <code>atexit</code> handlers).</li>
+</ol>
+
+<h1 id='example' class='section-header'><a href='#example'>Example</a></h1>
+<pre class='rust rust-example-rendered'>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>graceful</span>;
+
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>sync</span>::<span class='ident'>atomic</span>::{<span class='ident'>ATOMIC_BOOL_INIT</span>, <span class='ident'>AtomicBool</span>, <span class='ident'>Ordering</span>};
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>time</span>::<span class='ident'>Duration</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>;
+
+<span class='kw'>use</span> <span class='ident'>graceful</span>::<span class='ident'>SignalGuard</span>;
+
+<span class='kw'>static</span> <span class='ident'>STOP</span>: <span class='ident'>AtomicBool</span> <span class='op'>=</span> <span class='ident'>ATOMIC_BOOL_INIT</span>;
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='kw'>let</span> <span class='ident'>signal_guard</span> <span class='op'>=</span> <span class='ident'>SignalGuard</span>::<span class='ident'>new</span>();
+
+    <span class='kw'>let</span> <span class='ident'>handle</span> <span class='op'>=</span> <span class='ident'>thread</span>::<span class='ident'>spawn</span>(<span class='op'>||</span> {
+        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Worker thread started. Type Ctrl+C to stop.&quot;</span>);
+        <span class='kw'>while</span> <span class='op'>!</span><span class='ident'>STOP</span>.<span class='ident'>load</span>(<span class='ident'>Ordering</span>::<span class='ident'>Acquire</span>) {
+            <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;working...&quot;</span>);
+            <span class='ident'>thread</span>::<span class='ident'>sleep</span>(<span class='ident'>Duration</span>::<span class='ident'>from_millis</span>(<span class='number'>500</span>));
+        }
+        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Bye.&quot;</span>);
+    });
+
+    <span class='ident'>signal_guard</span>.<span class='ident'>at_exit</span>(<span class='kw'>move</span> <span class='op'>|</span><span class='ident'>sig</span><span class='op'>|</span> {
+        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Signal {} received.&quot;</span>, <span class='ident'>sig</span>);
+        <span class='ident'>STOP</span>.<span class='ident'>store</span>(<span class='boolval'>true</span>, <span class='ident'>Ordering</span>::<span class='ident'>Release</span>);
+        <span class='ident'>handle</span>.<span class='ident'>join</span>().<span class='ident'>unwrap</span>();
+    });
+}</pre>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.SignalGuard.html'
+                               title='graceful::SignalGuard'>SignalGuard</a></td>
+                        <td class='docblock short'>
+                             
+                        </td>
+                    </tr>
+                </table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "graceful";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
