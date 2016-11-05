@@ -71,11 +71,10 @@ mod platform {
         }
 
         fn init(mask: &mut SigSet) -> nix::Result<()> {
-            try!(mask.add(SIGINT));
-            try!(mask.add(SIGQUIT));
-            try!(mask.add(SIGTERM));
-            try!(mask.thread_block());
-            Ok(())
+            mask.add(SIGINT);
+            mask.add(SIGQUIT);
+            mask.add(SIGTERM);
+            mask.thread_block()
         }
 
         /// Block the running thread until a signal is received. Then the
