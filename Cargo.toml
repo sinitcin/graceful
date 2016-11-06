@@ -8,6 +8,11 @@ description = "Gracefully shutdown"
 documentation = "http://0x1997.github.io/graceful"
 homepage = "https://github.com/0x1997/graceful"
 repository = "https://github.com/0x1997/graceful.git"
+readme = "README.md"
+exclude = [
+  ".gitignore",
+  ".travis.yml",
+]
 
 [dependencies]
 nix = "^0.7.0"
