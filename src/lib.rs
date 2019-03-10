@@ -51,7 +51,7 @@
 //! }
 //! ```
 //!
-
+#![feature(rustc_private)]
 #[cfg(unix)]
 mod platform {
     extern crate nix;
@@ -92,17 +92,24 @@ mod platform {
 mod platform {
     extern crate winapi;
     extern crate kernel32;
+    extern crate lazy_static;
 
+    #[macro_use] 
+    use self::lazy_static::lazy_static;
     use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
+    use std::sync::{Mutex};
+    use self::kernel32::SetConsoleCtrlHandler;
+    use self::winapi::shared::minwindef::{BOOL, DWORD, TRUE, FALSE};
 
-    use kernel32::SetConsoleCtrlHandler;
-    use winapi::{BOOL, DWORD, TRUE};
-
-    static CHAN: (SyncSender<DWORD>, Receiver<DWORD>) = sync_channel(0);
+    lazy_static! {
+        static ref CHAN: Mutex<(SyncSender<u32>, Receiver<u32>)> = {
+            Mutex::new(sync_channel(0))
+        };
+    }
 
     unsafe extern "system" fn handler(event: DWORD) -> BOOL {
-        CHAN.0.send(event);
-        CHAN.0.send(0);
+        CHAN.lock().unwrap().0.send(event);
+        CHAN.lock().unwrap().0.send(0);
         FALSE
     }
 
@@ -115,9 +122,9 @@ mod platform {
         }
 
         pub fn at_exit<F: FnOnce(usize)>(&self, handler: F) {
-            let event = CHAN.1.recv().unwrap();
+            let event = CHAN.lock().unwrap().1.recv().unwrap();
             handler(event as usize);
-            CHAN.1.recv().unwrap();
+            CHAN.lock().unwrap().1.recv().unwrap();
         }
     }
 }

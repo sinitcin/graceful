@@ -15,5 +15,6 @@ exclude = [
 ]
 
 [dependencies]
-nix = "^0.7.0"
-kernel32-sys = "^0.2.2"
+nix = "0.7.*"
+kernel32-sys = "0.2.*"
+lazy_static = "*" 
